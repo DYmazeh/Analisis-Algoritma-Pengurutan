@@ -1,0 +1,163 @@
+#include <iostream>
+#include <chrono>
+#include <algorithm>
+#include <vector>
+
+using namespace std;
+using namespace std::chrono;
+
+void generateData(vector<int> &data, int n, const string &condition) {
+    data.clear();
+    if (condition == "random") {
+        for (int i = 0; i < n; ++i) {
+            data.push_back(rand() % 10000);
+        }
+    } else if (condition == "reversed") {
+        for (int i = n; i > 0; --i) {
+            data.push_back(i);
+        }
+    } else if (condition == "sorted") {
+        for (int i = 0; i < n; ++i) {
+            data.push_back(i);
+        }
+    }
+}
+
+void bubbleSort(vector<int> &arr) {
+    int n = arr.size();
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - i - 1; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+void insertionSort(vector<int> &arr) {
+    int n = arr.size();
+    for (int i = 1; i < n; ++i) {
+        int key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
+}
+
+void selectionSort(vector<int> &arr) {
+    int n = arr.size();
+    for (int i = 0; i < n - 1; ++i) {
+        int min_idx = i;
+        for (int j = i + 1; j < n; ++j) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+        }
+        swap(arr[min_idx], arr[i]);
+    }
+}
+
+void merge(vector<int> &arr, int l, int m, int r) {
+    int n1 = m - l + 1;
+    int n2 = r - m;
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; ++i) {
+        L[i] = arr[l + i];
+    }
+    for (int j = 0; j < n2; ++j) {
+        R[j] = arr[m + 1 + j];
+    }
+    int i = 0, j = 0, k = l;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k] = L[i];
+            i++;
+        } else {
+            arr[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(vector<int> &arr, int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+        mergeSort(arr, l, m);
+        mergeSort(arr, m + 1, r);
+        merge(arr, l, m, r);
+    }
+}
+
+int partition(vector<int> &arr, int low, int high) {
+    int pivot = arr[high];
+    int i = (low - 1);
+    for (int j = low; j <= high - 1; ++j) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return (i + 1);
+}
+
+void quickSort(vector<int> &arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+void measureSort(void (*sortFunc)(vector<int>&), vector<int> arr, const string &sortName, const string &condition) {
+    auto start = high_resolution_clock::now();
+    sortFunc(arr);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    cout << sortName << " - " << condition << ": " << duration.count() << " ms" << endl;
+}
+
+int main() {
+    srand(time(0));
+    vector<int> data;
+    vector<int> sizes = {10, 100, 500, 1000, 10000};
+    vector<string> conditions = {"random", "reversed", "sorted"};
+
+    for (const auto &size : sizes) {
+        cout << "Data size: " << size << endl;
+        for (const auto &condition : conditions) {
+            generateData(data, size, condition);
+            vector<int> dataCopy = data;
+
+            measureSort(bubbleSort, dataCopy, "Bubble Sort", condition);
+
+            dataCopy = data;
+            measureSort(insertionSort, dataCopy, "Insertion Sort", condition);
+
+            dataCopy = data;
+            measureSort(selectionSort, dataCopy, "Selection Sort", condition);
+
+            dataCopy = data;
+            measureSort([](vector<int> &arr){ mergeSort(arr, 0, arr.size() - 1); }, dataCopy, "Merge Sort", condition);
+
+            dataCopy = data;
+            measureSort([](vector<int> &arr){ quickSort(arr, 0, arr.size() - 1); }, dataCopy, "Quick Sort", condition);
+        }
+        cout << endl;
+    }
+    return 0;
+}
